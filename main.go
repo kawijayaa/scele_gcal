@@ -19,6 +19,7 @@ import (
 	"github.com/gocolly/colly"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
+	gapi "google.golang.org/api/googleapi"
 	"google.golang.org/api/option"
 	googleapi "google.golang.org/api/tasks/v1"
 )
@@ -269,7 +270,7 @@ func main() {
 	}
 
 	tasklist, _ := api.Tasklists.List().MaxResults(1).Do()
-	fetched_tasks, _ := api.Tasks.List(tasklist.Items[0].Id).Do()
+	fetched_tasks, _ := api.Tasks.List(tasklist.Items[0].Id).Do(gapi.QueryParameter("showHidden", "true"))
 	var existing_tasks []string
 
 	for _, task := range fetched_tasks.Items {
