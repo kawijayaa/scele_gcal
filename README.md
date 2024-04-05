@@ -5,7 +5,6 @@ Fetches SCeLe assignments and adds them to your Google Tasks.
 ## Limitations
 
 - You need to setup your own OAuth authentication using Google Cloud. Not planning to host this at the moment.
-- Not automatic yet, you need to set up your own cron jobs.
 - Only adds tasks to the first task list on your Google Tasks.
 - Only gets current month's tasks from SCeLe.
 - Codebase is very messy and slow, will try to refactor later.
