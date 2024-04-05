@@ -42,8 +42,7 @@ scele_config.json
 
 ```
 git clone --depth 1 git@github.com:kawijayaa/scele_gcal
-go get
-go run .
+docker-compose up --build
 ```
 
 ## How To Use
