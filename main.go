@@ -16,7 +16,6 @@ import (
 	"time"
 
 	"github.com/PuerkitoBio/goquery"
-	"github.com/go-co-op/gocron/v2"
 	"github.com/gocolly/colly"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
@@ -252,83 +251,74 @@ func saveToken(path string, token *oauth2.Token) {
 	json.NewEncoder(f).Encode(token)
 }
 
-func main() {
-	s, _ := gocron.NewScheduler()
-
-	t := gocron.NewTask(func() {
-		log.Println("Starting fetch...")
-		ctx := context.Background()
-		b, err := os.ReadFile("config.json")
-		if err != nil {
-			log.Fatalf("Unable to read client secret file: %v", err)
-		}
-
-		config, err := google.ConfigFromJSON(b, tasksapi.TasksScope, tasksapi.TasksReadonlyScope)
-		if err != nil {
-			log.Fatalf("Unable to parse client secret file to config: %v", err)
-		}
-		client := getClient(config)
-
-		api, err := tasksapi.NewService(ctx, option.WithHTTPClient(client))
-		if err != nil {
-			log.Fatalf("Unable to retrieve tasks Client %v", err)
-		}
-
-		tasklist, _ := api.Tasklists.List().MaxResults(1).Do()
-		fetched_tasks, _ := api.Tasks.List(tasklist.Items[0].Id).Do(googleapi.QueryParameter("showHidden", "true"))
-		var existing_tasks []string
-
-		for _, task := range fetched_tasks.Items {
-			existing_tasks = append(existing_tasks, task.Notes)
-		}
-
-		scele_config_file, err := os.Open("scele_config.json")
-		if err != nil {
-			log.Fatalln("SCeLe config not found!")
-		}
-
-		var scele_config SceleConfig
-		json.NewDecoder(scele_config_file).Decode(&scele_config)
-
-		sc := NewSceleClient(scele_config)
-		ok := sc.Login()
-		if !ok {
-			log.Fatalln("Cannot login!")
-		}
-
-		log.Println("Login to SCeLe successful!")
-
-		tasks := sc.FetchCurrentTasks()
-
-		for _, task := range tasks {
-			if slices.Contains(existing_tasks, task.Course+"\n"+task.URL) {
-				log.Printf("Task \"%v\" already exists, skipping...\n", task.Name)
-				continue
-			}
-
-			task_obj := tasksapi.Task{
-				Title: task.Name,
-				Due:   task.Deadline.AddDate(0, 0, 1).Format(time.RFC3339),
-				Notes: task.Course + "\n" + task.URL,
-			}
-			_, err = api.Tasks.Insert(tasklist.Items[0].Id, &task_obj).Do()
-			if err != nil {
-				log.Fatalln(err)
-			}
-			log.Printf("Created task \"%v\"\n", task.Name)
-		}
-	})
-
-	s.NewJob(
-		gocron.DurationJob(24*time.Hour),
-		t,
-	)
-
-	s.Start()
-
-	select {
-	case <-time.After(time.Minute):
+func fetch() {
+	log.Println("Starting fetch...")
+	ctx := context.Background()
+	b, err := os.ReadFile("config.json")
+	if err != nil {
+		log.Fatalf("Unable to read client secret file: %v", err)
 	}
 
-	s.Shutdown()
+	config, err := google.ConfigFromJSON(b, tasksapi.TasksScope, tasksapi.TasksReadonlyScope)
+	if err != nil {
+		log.Fatalf("Unable to parse client secret file to config: %v", err)
+	}
+	client := getClient(config)
+
+	api, err := tasksapi.NewService(ctx, option.WithHTTPClient(client))
+	if err != nil {
+		log.Fatalf("Unable to retrieve tasks Client %v", err)
+	}
+
+	tasklist, _ := api.Tasklists.List().MaxResults(1).Do()
+	fetched_tasks, _ := api.Tasks.List(tasklist.Items[0].Id).Do(googleapi.QueryParameter("showHidden", "true"))
+	var existing_tasks []string
+
+	for _, task := range fetched_tasks.Items {
+		existing_tasks = append(existing_tasks, task.Notes)
+	}
+
+	scele_config_file, err := os.Open("scele_config.json")
+	if err != nil {
+		log.Fatalln("SCeLe config not found!")
+	}
+
+	var scele_config SceleConfig
+	json.NewDecoder(scele_config_file).Decode(&scele_config)
+
+	sc := NewSceleClient(scele_config)
+	ok := sc.Login()
+	if !ok {
+		log.Fatalln("Cannot login!")
+	}
+
+	log.Println("Login to SCeLe successful!")
+
+	tasks := sc.FetchCurrentTasks()
+
+	for _, task := range tasks {
+		if slices.Contains(existing_tasks, task.Course+"\n"+task.URL) {
+			log.Printf("Task \"%v\" already exists, skipping...\n", task.Name)
+			continue
+		}
+
+		task_obj := tasksapi.Task{
+			Title: task.Name,
+			Due:   task.Deadline.AddDate(0, 0, 1).Format(time.RFC3339),
+			Notes: task.Course + "\n" + task.URL,
+		}
+		_, err = api.Tasks.Insert(tasklist.Items[0].Id, &task_obj).Do()
+		if err != nil {
+			log.Fatalln(err)
+		}
+		log.Printf("Created task \"%v\"\n", task.Name)
+	}
+	log.Printf("Finished fetching!")
+}
+
+func main() {
+	for {
+		fetch()
+		time.Sleep(12 * time.Hour)
+	}
 }
