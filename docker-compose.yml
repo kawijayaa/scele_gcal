@@ -1,0 +1,8 @@
+version: "3.9"
+services:
+  scele_gcal:
+    build: .
+    restart: on-failure
+    container_name: scele_gcal
+    ports:
+      - 9999:9999
