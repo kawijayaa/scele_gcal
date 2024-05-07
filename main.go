@@ -323,9 +323,20 @@ func fetch() {
 	log.Printf("Finished fetching!")
 }
 
+func ShouldRun() bool {
+	loc, _ := time.LoadLocation("Asia/Bangkok")
+	current_time := time.Now().In(loc)
+	is_9am := current_time.Hour() == 9 && current_time.Minute() == 0 && current_time.Second() == 0
+	is_9pm := current_time.Hour() == 21 && current_time.Minute() == 0 && current_time.Second() == 0
+
+	return is_9am || is_9pm
+}
+
 func main() {
+	fetch()
 	for {
-		fetch()
-		time.Sleep(12 * time.Hour)
+		if ShouldRun() {
+			fetch()
+		}
 	}
 }
