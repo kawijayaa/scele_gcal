@@ -300,6 +300,10 @@ func fetch() {
 	tasks := sc.FetchCurrentTasks()
 
 	for _, task := range tasks {
+		if task.Name == "" {
+			continue
+		}
+
 		if slices.Contains(existing_tasks, task.Course+"\n"+task.URL) {
 			log.Printf("Task \"%v\" already exists, skipping...\n", task.Name)
 			continue
