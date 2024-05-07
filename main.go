@@ -74,7 +74,10 @@ func (sc *SceleClient) NewCollector() *colly.Collector {
 
 func (sc *SceleClient) Login() bool {
 	log.Println("Logging in to SCeLe...")
-	response, err := sc.Client.Get("https://scele.cs.ui.ac.id/login/index.php")
+	req, _ := http.NewRequest("GET", "https://scele.cs.ui.ac.id/login/index.php", nil)
+
+	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/42.0.2311.135 Safari/537.36 Edge/12.246")
+	response, err := sc.Client.Do(req)
 	if err != nil {
 		log.Fatalln(err)
 		return false
